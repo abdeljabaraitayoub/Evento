@@ -5,16 +5,28 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $events = Event::all();
-        return response()->json($events, 200);
+        DB::enableQueryLog();
+
+        $events = Event::where('deleted_at', null)
+            ->where('category_id', 'LIKE', '%' . $request->category . '%')
+            ->where('title', 'LIKE', '%' . $request->event . '%')
+            ->paginate(5);
+
+        $queries = DB::getQueryLog();
+
+        return response()->json([
+            'events' => $events,
+        ], 200);
     }
 
 

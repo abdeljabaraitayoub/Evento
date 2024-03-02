@@ -6,6 +6,12 @@ use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Models\reservation;
 use App\Models\Ticket;
+use Dompdf\Dompdf;
+
+
+
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
 
 use Illuminate\Support\Facades\Hash;
 
@@ -70,5 +76,16 @@ class TicketController extends Controller
     {
         $ticket->delete();
         return response()->json(null, 204);
+    }
+    public function generate()
+    {
+        $qrCode = base64_encode(QrCode::format('png')->size(150)->generate('facebook.com'));
+        $pdf = new Dompdf();
+        $html = view('qr-codes', compact('qrCode'));
+        $pdf->loadHtml($html);
+        $pdf->setPaper('A4', 'landscape');
+        $pdf->render();
+        $pdf->stream('qr-codes.pdf');
+        // return view('qr-codes', compact('qrCode'));
     }
 }
