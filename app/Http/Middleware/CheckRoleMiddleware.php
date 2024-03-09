@@ -23,7 +23,6 @@ class CheckRoleMiddleware
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         $user = Auth::user();
-        // dd($user);
         if (!$user->role === $role) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }

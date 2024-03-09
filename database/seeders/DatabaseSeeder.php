@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CategorySeeder::class);
         $this->call(UserSeeder::class);
+        $this->call(RegionSeeder::class);
         $this->call(EventSeeder::class);
         // \App\Models\User::factory()->create([
         //     'name' => 'Test User',

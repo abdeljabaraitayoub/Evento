@@ -18,20 +18,24 @@ class ReservationController extends Controller
         $reservations = reservation::all();
         return response()->json($reservations, 200);
     }
-
-
-
     /**
      * Store a newly created resource in storage.
      */
     public function store(StorereservationRequest $request)
     {
         $reservation = new reservation();
-        $reservation->user_id = $request->user_id;
+        $reservation->user_id = Auth::id();
         $reservation->event_id = $request->event_id;
+        $event = Event::findOrFail($request->event_id);
+        if ($event->auto_approve) {
+            $reservation->save();
+            $reservation->confirmed = 1;
+            TicketController::store($reservation, $event);
+            return response()->json(["reservation" => $reservation, "message" => "verify your email please"], 201);
+        }
         $reservation->save();
-        $ticket = TicketController::store($reservation->id);
-        return response()->json(["reservation" => $reservation, "ticket" => $ticket], 201);
+
+        return response()->json(["reservation" => $reservation, "message" => "wait till the organizer accept your reservation"], 201);
     }
 
     /**
@@ -64,12 +68,23 @@ class ReservationController extends Controller
     }
     public function getEventReservations(Event $Event)
     {
-        $reservations = reservation::all()->where('event_id', $Event->id);
+        $reservations = reservation::join('users', 'users.id', '=', 'reservations.user_id')
+            ->join('events', 'events.id', '=', 'reservations.event_id')
+            ->where('reservations.deleted_at', null)
+
+            ->where('event_id', $Event->id)
+            ->select('reservations.*', 'events.title', 'events.auto_approve', 'users.name')
+            ->get();
         return response()->json($reservations, 200);
     }
     public function confirmReservation(reservation $reservation)
     {
-        $reservation->confirmed = 1;
+        if ($reservation->confirmed) {
+            $reservation->confirmed = 0;
+        } else {
+            $reservation->confirmed = 1;
+            TicketController::store($reservation);
+        }
         $reservation->save();
         return response()->json($reservation, 200);
     }

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterUserRequest;
+use Illuminate\Support\Facades\Validator;
+
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,9 +14,11 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\passwordreset;
+use App\Mail\ResetPassword;
 use App\Models\Permission;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -23,31 +28,27 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
         if (!$token = Auth::guard('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'wrong credentials'], 401);
         }
         return
             response()->json([
                 'token' => $token,
                 'token_type' => 'bearer',
-                'expires_in' => JWTAuth::factory()->getTTL()
+                'expires_in' => JWTAuth::factory()->getTTL(),
+                'role' => Auth::user()->role,
             ]);
     }
 
-    public function register(Request $request)
+    public function register(RegisterUserRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|string|email|unique:users',
-            'password' => 'required|string',
-            'role' => 'required|string',
-        ]);
-        $user = new User([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => password_hash($request->password, PASSWORD_DEFAULT),
-            'role' => $request->role,
-        ]);
+        DB::enableQueryLog();
+        $user = new User();
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = password_hash($request->password, PASSWORD_DEFAULT);
+        $user->role = $request->role;
         $user->save();
+        // dd(DB::getQueryLog());
         return response()->json([
             'message' => 'Successfully created user!',
         ], 201);
@@ -60,10 +61,9 @@ class AuthController extends Controller
         ]);
         $user = User::all()->where('email', $request->email)->first();
         $id = $user->id;
-
         $token = Str::random(6);
         Cache::put($token, $id, 5 * 60);
-        // Mail::to($request->email)->send(new passwordreset($token));
+        Mail::to($request->email)->send(new ResetPassword($token));
         return response()->json([
             'token' => $token,
         ], 200);

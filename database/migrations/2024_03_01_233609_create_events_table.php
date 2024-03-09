@@ -21,7 +21,10 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained();
             $table->foreignId('category_id')->constrained();
             $table->dateTime('deleted_at')->nullable();
-
+            $table->boolean('auto_approve')->default(false);
+            $table->foreignId('region_id')->constrained();
+            $table->boolean('is_valid')->default(false);
+            $table->float('price')->default('10.99');
             $table->timestamps();
         });
     }

@@ -24,6 +24,7 @@ class EventFactory extends Factory
             'category_id' => $this->faker->numberBetween(1, 10),
             'user_id' => $this->faker->numberBetween(1, 10),
             'capacity' => $this->faker->numberBetween(10, 1000),
+            'region_id' => $this->faker->numberBetween(1, 10),
         ];
     }
 }
